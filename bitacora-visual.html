@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitácora Visual - Museo de la Cárcova</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+
+        html, body {
+            overflow: hidden;
+            height: 100%;
+        }
+
+        /* Grain texture overlay */
+        .grain::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            pointer-events: none;
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            background-size: 128px 128px;
+        }
+
+        /* Landing */
+        .landing {
+            background-color: #0e0e0e;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .landing::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+        }
+
+        .gold { color: #c9a96e; }
+
+        .btn-start {
+            border: 1px solid rgba(201, 169, 110, 0.4);
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-start::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(201,169,110,0.15), transparent);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+        .btn-start:hover::before {
+            opacity: 1;
+        }
+        .btn-start:hover {
+            border-color: #c9a96e;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(201, 169, 110, 0.15);
+        }
+
+        .scroll-line {
+            width: 1px;
+            height: 40px;
+            background: linear-gradient(to bottom, rgba(201,169,110,0.6), transparent);
+            animation: scrollPulse 2s ease-in-out infinite;
+        }
+        @keyframes scrollPulse {
+            0%, 100% { opacity: 0.4; transform: scaleY(1); }
+            50% { opacity: 1; transform: scaleY(1.2); }
+        }
+
+        /* Slides */
+        .slide-container {
+            background-color: #121212;
+        }
+
+        .text-silver { color: #a0a0a0; }
+
+        .photo-shadow {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.6s ease;
+        }
+
+        .nav-btn {
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .nav-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            transform: scale(1.1);
+        }
+        .nav-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Slide visibility */
+        .slide {
+            display: none;
+            opacity: 0;
+            min-height: 100vh;
+        }
+        .slide.active {
+            display: flex;
+            opacity: 1;
+            animation: slideIn 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Staggered animations for slide content */
+        .slide.active .slide-text {
+            animation: textSlideIn 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.2s both;
+        }
+        .slide.active .slide-photos {
+            animation: photosReveal 0.9s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.3s both;
+        }
+        .slide.active .slide-counter {
+            animation: fadeSlideUp 0.6s ease 0.5s both;
+        }
+
+        @keyframes textSlideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes photosReveal {
+            from {
+                opacity: 0;
+                transform: translateX(30px) scale(0.97);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0) scale(1);
+            }
+        }
+
+        @keyframes fadeSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(15px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Photo hover effects */
+        .photo-wrapper {
+            overflow: hidden;
+            border-radius: 4px;
+            position: relative;
+        }
+        .photo-wrapper::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.3), transparent 40%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            pointer-events: none;
+        }
+        .photo-wrapper:hover::after {
+            opacity: 1;
+        }
+        .photo-wrapper img {
+            transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .photo-wrapper:hover img {
+            transform: scale(1.05);
+        }
+
+        /* Fade-in */
+        .fade-up {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .fade-up.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Single photo layout */
+        .single-photo {
+            max-width: 65%;
+            margin-left: auto;
+        }
+
+        /* Progress bar */
+        .progress-bar {
+            height: 2px;
+            background: linear-gradient(90deg, #c9a96e, #c9a96e);
+            transition: width 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            border-radius: 1px;
+        }
+
+        /* Counter animation */
+        #slide-counter {
+            transition: all 0.3s ease;
+        }
+
+        /* Lightbox */
+        .lightbox {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background-color: rgba(0, 0, 0, 0.92);
+            align-items: center;
+            justify-content: center;
+            cursor: zoom-out;
+        }
+        .lightbox.open {
+            display: flex;
+            animation: lightboxIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+        @keyframes lightboxIn {
+            from {
+                opacity: 0;
+                backdrop-filter: blur(0px);
+            }
+            to {
+                opacity: 1;
+                backdrop-filter: blur(8px);
+            }
+        }
+        .lightbox img {
+            max-width: 90vw;
+            max-height: 90vh;
+            object-fit: contain;
+            border-radius: 4px;
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+            animation: lightboxImgIn 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.1s both;
+        }
+        @keyframes lightboxImgIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+        .lightbox-close {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: transparent;
+            color: #999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            animation: lightboxImgIn 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.2s both;
+        }
+        .lightbox-close:hover {
+            border-color: #fff;
+            color: #fff;
+            transform: rotate(90deg) scale(1.1);
+        }
+
+        /* Clickable photos */
+        .slide img[src^="fotos"] {
+            cursor: zoom-in;
+        }
+
+        /* Landing title glow */
+        .title-glow {
+            text-shadow: 0 0 60px rgba(201, 169, 110, 0.1);
+        }
+
+        /* Subtle floating animation for landing */
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        .float-anim {
+            animation: float 6s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="m-0 p-0 grain" style="background-color: #121212;">
+
+    <!-- ======================== -->
+    <!-- PANTALLA DE INICIO       -->
+    <!-- ======================== -->
+    <section id="landing" class="landing min-h-screen flex flex-col items-center justify-center relative">
+        <div class="text-center z-10 px-6">
+            <p class="text-xs tracking-[0.4em] gold mb-8 fade-up" style="transition-delay: 0.1s;">
+                BITÁCORA VISUAL
+            </p>
+            <h1 class="text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-tight mb-6 fade-up title-glow" style="transition-delay: 0.3s;">
+                Museo de la <span class="gold">Cárcova</span>
+            </h1>
+            <p class="text-gray-400 text-base md:text-lg font-light tracking-wide mb-12 fade-up" style="transition-delay: 0.5s;">
+                Una exploración de la forma, la luz y el fragmento
+            </p>
+            <div class="space-y-1 mb-14 fade-up" style="transition-delay: 0.7s;">
+                <p class="text-gray-500 text-sm font-light">— Yazmin Kussi</p>
+                <p class="text-gray-600 text-xs font-light">Profesora: Paula Kipen</p>
+            </div>
+            <div class="fade-up" style="transition-delay: 0.9s;">
+                <button id="btn-empezar"
+                   class="btn-start inline-flex items-center gap-3 px-8 py-3 rounded-full text-sm text-gray-300 tracking-wider hover:text-white cursor-pointer">
+                    Empezar recorrido
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div class="absolute bottom-10 flex flex-col items-center gap-3 fade-up float-anim" style="transition-delay: 1.1s;">
+            <span class="text-[10px] tracking-[0.35em] text-gray-600 uppercase">Deslizar</span>
+            <div class="scroll-line"></div>
+        </div>
+    </section>
+
+    <!-- ======================== -->
+    <!-- RECORRIDO - 12 SLIDES    -->
+    <!-- ======================== -->
+    <div id="recorrido" class="hidden min-h-screen" style="background-color: #121212;">
+
+        <!-- SLIDE 01 -->
+        <section class="slide slide-container min-h-screen items-center" data-slide="1">
+            <div class="w-full max-w-7xl mx-auto px-6 lg:px-12 py-12">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12 items-center">
+                    <div class="lg:col-span-1 space-y-8 order-2 lg:order-1 slide-text">
+                        <h2 class="text-white text-2xl lg:text-3xl font-light leading-tight tracking-tight">
+                            ¿El encuadre te puede cambiar el sentido de un gesto?
+                        </h2>
+                        <p class="text-silver text-base lg:text-lg font-light leading-relaxed">
+                            En la primera foto recorté el calco de Il Pensieroso para que todo el peso visual vaya directo al gesto de la mano y la cara. Al abrir el plano en la segunda, la escultura empieza a competir con los textos del fondo y el entorno de La Cárcova, y se pierde un poco esa intimidad que tenía el primer detalle.
+                        </p>
+                    </div>
+                    <div class="lg:col-span-2 order-1 lg:order-2 slide-photos">
+                        <div class="grid grid-cols-2 gap-2 lg:gap-3">
+                            <div class="aspect-[3/4] photo-wrapper photo-shadow">
+                                <img src="fotos/1.jpeg" alt="Foto 1" class="w-full h-full object-cover">
+                            </div>
+                            <div class="aspect-[3/4] photo-wrapper photo-shadow">
+                                <img src="fotos/1b.jpeg" alt="Foto 1b" class="w-full h-full object-cover">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 02 -->
+        <section class="slide slide-container min-h-screen items-center" data-slide="2">
+            <div class="w-full max-w-7xl mx-auto px-6 lg:px-12 py-12">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12 items-center">
+                    <div class="lg:col-span-1 space-y-8 order-2 lg:order-1 slide-text">
+                        <h2 class="text-white text-2xl lg:text-3xl font-light leading-tight tracking-tight">
+                            ¿La luz del sol puede volver a esculpir una obra?
+                        </h2>
+                        <p class="text-silver text-base lg:text-lg font-light leading-relaxed">
+                            Me quedé mirando cómo la luz natural que entraba por la ventana pegaba de costado en este calco. En el detalle más cerrado, ese contraste destaca muchísimo la textura, pero cuando abrís un poco el encuadre, la sombra proyectada corta la base a la mitad y le cambia por completo el peso visual a toda la composición.
+                        </p>
+                    </div>
+                    <div class="lg:col-span-2 order-1 lg:order-2 slide-photos">
+                        <div class="grid grid-cols-2 gap-2 lg:gap-3">
+                            <div class="aspect-[3/4] photo-wrapper photo-shadow">
+                                <img src="fotos/2.jpeg" alt="Foto 2" class="w-full h-full object-cover">
+                            </div>
+                            <div class="aspect-[3/4] photo-wrapper photo-shadow">
+                                <img src="fotos/2b.jpeg" alt="Foto 2b" class="w-full h-full object-cover">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 03 -->
+        <section class="slide slide-container min-h-screen items-center" data-slide="3">
+            <div class="w-full max-w-7xl mx-auto px-6 lg:px-12 py-12">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12 items-center">
+                    <div class="lg:col-span-1 space-y-8 order-2 lg:order-1 slide-text">
+                        <h2 class="text-white text-2xl lg:text-3xl font-light leading-tight tracking-tight">
+                            ¿Qué se nos pasa por alto cuando miramos de lejos?
+                        </h2>
+                        <p class="text-silver text-base lg:text-lg font-light leading-relaxed">
+                            De lejos, el calco parece entero, como si fuera una sola pieza impecable. Pero cuando te acercás un poco, el punto de vista te muestra los cortes reales que sostienen el ala. Como todo puede cambiar si miras de cerca.
+                        </p>
+                    </div>
+                    <div class="lg:col-span-2 order-1 lg:order-2 slide-photos">
+                        <div class="grid grid-cols-2 gap-2 lg:gap-3">
+                            <div class="aspect-[3/4] photo-wrapper photo-shadow">
+                                <img src="fotos/3.jpeg" alt="Foto 3" class="w-full h-full object-cover">
+                            </div>
+                            <div class="aspect-[3/4] photo-wrapper photo-shadow">
+                                <img src="fotos/3b.jpeg" alt="Foto 3b" class="w-full h-full object-cover">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 04 -->
+        <section class="slide slide-container min-h-screen items-center" data-slide="4">
+            <div class="w-full max-w-7xl mx-auto px-6 lg:px-12 py-12">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12 items-center">
+                    <div class="lg:col-span-1 space-y-8 order-2 lg:order-1 slide-text">
+                        <h2 class="text-white text-2xl lg:text-3xl font-light leading-tight tracking-tight">
+                            ¿Hace falta ver todo para sentir la fuerza?
+                        </h2>
+                        <p class="text-silver text-base lg:text-lg font-light leading-relaxed">
+                            Me encanta cómo no necesitás mostrar la escultura entera para transmitir esa tensión. Te quedás con este recorte del torso del David y el detalle de la mano y ahí ya tenés concentrada toda la fuerza de la obra. Ni siquiera necesitas conocer el tamaño real de la obra y el peso visual que tiene para darte cuenta de su importancia y fuerza.
+                        </p>
+                    </div>
+                    <div class="lg:col-span-2 order-1 lg:order-2 slide-photos">
+                        <div class="single-photo">
+                            <div class="aspect-[3/4] photo-wrapper photo-shadow">
+                                <img src="fotos/4.jpeg" alt="Foto 4" class="w-full h-full object-cover">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 05 -->
+        <section class="slide slide-container min-h-screen items-center" data-slide="5">
+            <div class="w-full max-w-7xl mx-auto px-6 lg:px-12 py-12">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12 items-center">
+                    <div class="lg:col-span-1 space-y-8 order-2 lg:order-1 slide-text">
+                        <h2 class="text-white text-2xl lg:text-3xl font-light leading-tight tracking-tight">
+                            ¿Hasta dónde llega el nivel de detalle?
+                        </h2>
+                        <p class="text-silver text-base lg:text-lg font-light leading-relaxed">
+                            Cuando te acercás tanto, te ponés a seguir las curvas, los relieves y esa textura tan detallada y compleja que te olvidás de que es algo más grande, lo que se ve en la foto es simplemente una minima parte de la obra.
+                        </p>
+                    </div>
+                    <div class="lg:col-span-2 order-1 lg:order-2 slide-photos">
+                        <div class="single-photo">
+                            <div class="aspect-[3/4] photo-wrapper photo-shadow">
+                                <img src="fotos/5.jpeg" alt="Foto 5" class="w-full h-full object-cover">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 06 -->
+        <section class="slide slide-container min-h-screen items-center" data-slide="6">
+            <div class="w-full max-w-7xl mx-auto px-6 lg:px-12 py-12">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12 items-center">
+                    <div class="lg:col-span-1 space-y-8 order-2 lg:order-1 slide-text">
+                        <h2 class="text-white text-2xl lg:text-3xl font-light leading-tight tracking-tight">
+                            ¿Cómo hacés para que la piedra parezca tela?
+                        </h2>
+                        <p class="text-silver text-base lg:text-lg font-light leading-relaxed">
+                            Es tremendo el laburo que tiene la caída de este vestido. De lejos ves la figura entera, pero cuando te acercás al detalle de los pliegues, te vuela la cabeza. La piedra no se sienten rigida para nada, tiene una caída y un movimiento que te hacen dudar de si de verdad es piedra o tela real.
+                        </p>
+                    </div>
+                    <div class="lg:col-span-2 order-1 lg:order-2 slide-photos">
+                        <div class="grid grid-cols-2 gap-2 lg:gap-3">
+                            <div class="aspect-[3/4] photo-wrapper photo-shadow">
+                                <img src="fotos/6.jpeg" alt="Foto 6" class="w-full h-full object-cover">
+                            </div>
+                            <div class="aspect-[3/4] photo-wrapper photo-shadow">
+                                <img src="fotos/6b.jpeg" alt="Foto 6b" class="w-full h-full object-cover">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 07 -->
+        <section class="slide slide-container min-h-screen items-center" data-slide="7">
+            <div class="w-full max-w-7xl mx-auto px-6 lg:px-12 py-12">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12 items-center">
+                    <div class="lg:col-span-1 space-y-8 order-2 lg:order-1 slide-text">
+                        <h2 class="text-white text-2xl lg:text-3xl font-light leading-tight tracking-tight">
+                            La paciencia del trazo
+                        </h2>
+                        <p class="text-silver text-base lg:text-lg font-light leading-relaxed">
+                            De lejos, la mano parece real, pero cuando te acercás, te das cuenta de que está hecha pura y exclusivamente a base de rayas. El detalle es impresionante, la sombra, la textura que generó y todo solamente con un lapiz dibujando simplemente rayas.
+                        </p>
+                    </div>
+                    <div class="lg:col-span-2 order-1 lg:order-2 slide-photos">
+                        <div class="single-photo">
+                            <div class="aspect-[3/4] photo-wrapper photo-shadow">
+                                <img src="fotos/7.jpeg" alt="Foto 7" class="w-full h-full object-cover">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 08 -->
+        <section class="slide slide-container min-h-screen items-center" data-slide="8">
+            <div class="w-full max-w-7xl mx-auto px-6 lg:px-12 py-12">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12 items-center">
+                    <div class="lg:col-span-1 space-y-8 order-2 lg:order-1 slide-text">
+                        <h2 class="text-white text-2xl lg:text-3xl font-light leading-tight tracking-tight">
+                            La luz
+                        </h2>
+                        <p class="text-silver text-base lg:text-lg font-light leading-relaxed">
+                            Me encanta cómo la arquitectura de este museo está pensada para aprovechar al máximo la luz natural. Durante el recorrido está lleno de ventanas por todos lados, lo que crea una espacio súper luminoso. Esta ventana en el techo es un claro ejemplo y me parece interesante ya que genera algo distinto en las obras dependiendo el momento del día en el que vayas y cuanto sol hay, lo que hace que cada visita sea distinta.
+                        </p>
+                    </div>
+                    <div class="lg:col-span-2 order-1 lg:order-2 slide-photos">
+                        <div class="single-photo">
+                            <div class="aspect-[3/4] photo-wrapper photo-shadow">
+                                <img src="fotos/8.jpeg" alt="Foto 8" class="w-full h-full object-cover">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 09 -->
+        <section class="slide slide-container min-h-screen items-center" data-slide="9">
+            <div class="w-full max-w-7xl mx-auto px-6 lg:px-12 py-12">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12 items-center">
+                    <div class="lg:col-span-1 space-y-8 order-2 lg:order-1 slide-text">
+                        <h2 class="text-white text-2xl lg:text-3xl font-light leading-tight tracking-tight">
+                            Detalles tallados en piedra
+                        </h2>
+                        <p class="text-silver text-base lg:text-lg font-light leading-relaxed">
+                            Me impresiona muchísimo la precisión. Pensar en el laburo y el tiempo que llevó tallar cada uno de los jeroglíficos y las figuras directamente sobre la piedra es una locura. Lo que más me gusta es cómo la luz de costado, destaca la profundidad de cada línea y genera esas sombras que le dan un volumen increíble a toda la escena.
+                        </p>
+                    </div>
+                    <div class="lg:col-span-2 order-1 lg:order-2 slide-photos">
+                        <div class="single-photo">
+                            <div class="aspect-[3/4] photo-wrapper photo-shadow">
+                                <img src="fotos/9.jpeg" alt="Foto 9" class="w-full h-full object-cover">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 10 -->
+        <section class="slide slide-container min-h-screen items-center" data-slide="10">
+            <div class="w-full max-w-7xl mx-auto px-6 lg:px-12 py-12">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12 items-center">
+                    <div class="lg:col-span-1 space-y-8 order-2 lg:order-1 slide-text">
+                        <h2 class="text-white text-2xl lg:text-3xl font-light leading-tight tracking-tight">
+                            El interior
+                        </h2>
+                        <p class="text-silver text-base lg:text-lg font-light leading-relaxed">
+                            Lo que más me interesa de esta escultura es que te deja ver el "detrás de escena". En lugar de mostrarte solo una obra perfecta y terminada, se abre para que mires cómo está construida por dentro, con los materiales crudos y esa varilla de madera que la sostiene. Es una forma súper directa de entender el trabajo real de la artista y cómo fue el proceso para crearla.
+                        </p>
+                    </div>
+                    <div class="lg:col-span-2 order-1 lg:order-2 slide-photos">
+                        <div class="single-photo">
+                            <div class="aspect-[3/4] photo-wrapper photo-shadow">
+                                <img src="fotos/10.jpeg" alt="Foto 10" class="w-full h-full object-cover">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 11 -->
+        <section class="slide slide-container min-h-screen items-center" data-slide="11">
+            <div class="w-full max-w-7xl mx-auto px-6 lg:px-12 py-12">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12 items-center">
+                    <div class="lg:col-span-1 space-y-8 order-2 lg:order-1 slide-text">
+                        <h2 class="text-white text-2xl lg:text-3xl font-light leading-tight tracking-tight">
+                            El jardín
+                        </h2>
+                        <p class="text-silver text-base lg:text-lg font-light leading-relaxed">
+                            Estas obras fueron sacadas del museo y llevadas al jardin, al aire libre, rodeadas de pasto, árboles y al lado del taller. Las esculturas toman otra vida, dejaron de ser piezas intocables de exposición para pasar a formar parte de la naturaleza del lugar.
+                        </p>
+                    </div>
+                    <div class="lg:col-span-2 order-1 lg:order-2 slide-photos">
+                        <div class="single-photo">
+                            <div class="aspect-[3/4] photo-wrapper photo-shadow">
+                                <img src="fotos/11.jpeg" alt="Foto 11" class="w-full h-full object-cover">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CONTROLES FIJOS -->
+        <div class="fixed bottom-0 left-0 right-0 z-50 pointer-events-none">
+            <!-- Progress bar -->
+            <div class="w-full px-6 lg:px-12 mb-4">
+                <div class="max-w-7xl mx-auto">
+                    <div class="w-full h-[2px] bg-gray-800 rounded-full overflow-hidden">
+                        <div id="progress-fill" class="progress-bar h-full" style="width: 8.33%;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="max-w-7xl mx-auto px-6 lg:px-12 pb-8">
+                <div class="flex items-center gap-4 pointer-events-auto">
+                    <span id="slide-counter" class="text-gray-500 text-sm font-medium tracking-widest">
+                        01 / 11
+                    </span>
+                    <div class="flex items-center gap-3">
+                        <button id="btn-prev"
+                            class="nav-btn w-10 h-10 rounded-full border border-gray-700 flex items-center justify-center text-gray-400 hover:text-white hover:border-gray-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                            </svg>
+                        </button>
+                        <button id="btn-next"
+                            class="nav-btn w-10 h-10 rounded-full border border-gray-700 flex items-center justify-center text-gray-400 hover:text-white hover:border-gray-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- LIGHTBOX -->
+    <div id="lightbox" class="lightbox">
+        <button class="lightbox-close" id="lightbox-close">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+        <img id="lightbox-img" src="" alt="Foto ampliada">
+    </div>
+
+    <!-- ======================== -->
+    <!-- JS                       -->
+    <!-- ======================== -->
+    <script>
+        const TOTAL = 11;
+        let current = 1;
+
+        const landing = document.getElementById('landing');
+        const recorrido = document.getElementById('recorrido');
+        const counter = document.getElementById('slide-counter');
+        const progressFill = document.getElementById('progress-fill');
+        const btnEmpezar = document.getElementById('btn-empezar');
+        const btnPrev = document.getElementById('btn-prev');
+        const btnNext = document.getElementById('btn-next');
+        const slides = document.querySelectorAll('.slide');
+
+        function showSlide(n) {
+            if (n < 1 || n > TOTAL) return;
+            current = n;
+            slides.forEach(s => s.classList.remove('active'));
+            const activeSlide = document.querySelector(`[data-slide="${n}"]`);
+            activeSlide.classList.add('active');
+            counter.textContent = String(n).padStart(2, '0') + ' / ' + TOTAL;
+            progressFill.style.width = ((n / TOTAL) * 100) + '%';
+        }
+
+        btnEmpezar.addEventListener('click', () => {
+            landing.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+            landing.style.opacity = '0';
+            landing.style.transform = 'scale(0.98)';
+            setTimeout(() => {
+                landing.classList.add('hidden');
+                recorrido.classList.remove('hidden');
+                recorrido.classList.add('flex');
+                showSlide(1);
+            }, 500);
+        });
+
+        btnPrev.addEventListener('click', () => {
+            if (current > 1) showSlide(current - 1);
+        });
+
+        btnNext.addEventListener('click', () => {
+            if (current < TOTAL) showSlide(current + 1);
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (!document.getElementById('lightbox').classList.contains('open')) {
+                if (recorrido.classList.contains('hidden')) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        btnEmpezar.click();
+                    }
+                    return;
+                }
+                if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (current > 1) showSlide(current - 1);
+                }
+                if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
+                    e.preventDefault();
+                    if (current < TOTAL) showSlide(current + 1);
+                }
+            }
+        });
+
+        // Lightbox
+        const lightbox = document.getElementById('lightbox');
+        const lightboxImg = document.getElementById('lightbox-img');
+        const lightboxClose = document.getElementById('lightbox-close');
+
+        function openLightbox(src) {
+            lightboxImg.src = src;
+            lightbox.classList.add('open');
+        }
+
+        function closeLightbox() {
+            lightbox.style.animation = 'none';
+            lightbox.offsetHeight;
+            lightbox.style.animation = '';
+            lightbox.classList.remove('open');
+            setTimeout(() => { lightboxImg.src = ''; }, 300);
+        }
+
+        document.addEventListener('click', (e) => {
+            if (e.target.tagName === 'IMG' && e.target.src.includes('fotos/')) {
+                e.stopPropagation();
+                openLightbox(e.target.src);
+            }
+        });
+
+        lightbox.addEventListener('click', (e) => {
+            if (e.target === lightbox || e.target === lightboxClose || lightboxClose.contains(e.target)) {
+                closeLightbox();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeLightbox();
+        });
+
+        // Fade-in landing
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.fade-up').forEach(el => el.classList.add('visible'));
+        });
+    </script>
+
+</body>
+</html>
